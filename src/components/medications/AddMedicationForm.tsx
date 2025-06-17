@@ -12,9 +12,17 @@ import { useMedications } from '@/hooks/useMedications';
 import { toast } from '@/components/ui/sonner';
 
 const medicationSchema = z.object({
-  name: z.string().min(1, 'Medication name is required'),
-  dosage: z.string().min(1, 'Dosage is required'),
-  frequency: z.string().min(1, 'Frequency is required'),
+  name: z.string()
+    .min(1, 'Medication name is required')
+    .max(100, 'Medication name must be less than 100 characters')
+    .trim(),
+  dosage: z.string()
+    .min(1, 'Dosage is required')
+    .max(50, 'Dosage must be less than 50 characters')
+    .trim(),
+  frequency: z.enum(['once_daily', 'twice_daily', 'three_times_daily', 'four_times_daily', 'as_needed', 'weekly'], {
+    required_error: 'Please select a frequency',
+  }),
 });
 
 type MedicationFormData = z.infer<typeof medicationSchema>;
@@ -26,7 +34,7 @@ const frequencyOptions = [
   { value: 'four_times_daily', label: 'Four times daily' },
   { value: 'as_needed', label: 'As needed' },
   { value: 'weekly', label: 'Weekly' },
-];
+] as const;
 
 export const AddMedicationForm: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -37,7 +45,7 @@ export const AddMedicationForm: React.FC = () => {
     defaultValues: {
       name: '',
       dosage: '',
-      frequency: '',
+      frequency: undefined,
     },
   });
 
@@ -48,33 +56,43 @@ export const AddMedicationForm: React.FC = () => {
       form.reset();
       setOpen(false);
     } catch (error) {
+      console.error('Add medication error:', error);
       toast.error('Failed to add medication. Please try again.');
     }
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      form.reset();
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button className="flex items-center gap-2">
           <Plus className="w-4 h-4" />
-          Add Medication
+          <span className="hidden sm:inline">Add Medication</span>
+          <span className="sm:hidden">Add</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Medication</DialogTitle>
           <DialogDescription>
-            Add a new medication to your daily routine.
+            Add a new medication to your daily routine. All fields are required.
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Medication Name</Label>
+            <Label htmlFor="name">Medication Name *</Label>
             <Input
               id="name"
               placeholder="e.g., Aspirin, Metformin"
               {...form.register('name')}
+              disabled={isAddingMedication}
             />
             {form.formState.errors.name && (
               <p className="text-sm text-destructive">
@@ -84,11 +102,12 @@ export const AddMedicationForm: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="dosage">Dosage</Label>
+            <Label htmlFor="dosage">Dosage *</Label>
             <Input
               id="dosage"
-              placeholder="e.g., 100mg, 1 tablet"
+              placeholder="e.g., 100mg, 1 tablet, 5ml"
               {...form.register('dosage')}
+              disabled={isAddingMedication}
             />
             {form.formState.errors.dosage && (
               <p className="text-sm text-destructive">
@@ -98,8 +117,11 @@ export const AddMedicationForm: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="frequency">Frequency</Label>
-            <Select onValueChange={(value) => form.setValue('frequency', value)}>
+            <Label htmlFor="frequency">Frequency *</Label>
+            <Select 
+              onValueChange={(value) => form.setValue('frequency', value as any)}
+              disabled={isAddingMedication}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select frequency" />
               </SelectTrigger>
@@ -122,7 +144,7 @@ export const AddMedicationForm: React.FC = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => handleOpenChange(false)}
               disabled={isAddingMedication}
             >
               Cancel

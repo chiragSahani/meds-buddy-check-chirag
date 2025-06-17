@@ -1,260 +1,206 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/last%20commit-today-brightgreen" alt="last commit" />
-  <img src="https://img.shields.io/badge/typescript-98.2%25-blue" alt="typescript" />
-  <img src="https://img.shields.io/badge/languages-4-blue" alt="languages" />
-</p>
+# MediCare - Medication Management App
 
-<p align="center">
-  <img src="https://user-images.githubusercontent.com/yourusername/logo.png" alt="MediCare Logo" width="120" style="border-radius:16px;"/>
-</p>
+A comprehensive medication tracking application built with React, TypeScript, and Supabase. Designed for both patients and caretakers to manage and monitor medication adherence.
 
-<h1 align="center">MEDS-BUDDY-CHECK-CHIRAG</h1>
-<p align="center"><i>Empowering Health, Simplifying Care, Inspiring Lives</i></p>
+## 🚀 Features
 
-<p align="center">
-  <b>Built With:</b><br>
-  <img src="https://img.shields.io/badge/-JSON-black?logo=json" />
-  <img src="https://img.shields.io/badge/-Markdown-black?logo=markdown" />
-  <img src="https://img.shields.io/badge/-npm-red?logo=npm" />
-  <img src="https://img.shields.io/badge/-Autoprefixer-ef4444?logo=autoprefixer" />
-  <img src="https://img.shields.io/badge/-PostCSS-dd6a00?logo=postcss" />
-  <img src="https://img.shields.io/badge/-JavaScript-f7df1e?logo=javascript&logoColor=black" />
-  <img src="https://img.shields.io/badge/-Vitest-94c947?logo=vitest" />
-  <img src="https://img.shields.io/badge/-React-61dafb?logo=react" />
-  <img src="https://img.shields.io/badge/-TypeScript-3178c6?logo=typescript" />
-  <img src="https://img.shields.io/badge/-Zod-4f46e5" />
-  <img src="https://img.shields.io/badge/-Vite-646cff?logo=vite" />
-  <img src="https://img.shields.io/badge/-ESLint-4b32c3?logo=eslint" />
-  <img src="https://img.shields.io/badge/-dateFns-e11d48?logo=date-fns" />
-  <img src="https://img.shields.io/badge/-React%20Hook%20Form-ec4899" />
-</p>
+### Core Features
+- **Dual Role System**: Switch between Patient and Caretaker views
+- **Secure Authentication**: Email/password authentication with Supabase
+- **Medication Management**: Add, edit, and delete medications
+- **Adherence Tracking**: Mark medications as taken and track compliance
+- **Real-time Updates**: Optimistic UI updates with React Query
+- **Responsive Design**: Mobile-first design that works on all devices
 
-<hr/>
+### Patient Features
+- Personal medication dashboard
+- Daily medication tracking
+- Adherence statistics and insights
+- Streak tracking for motivation
+- Visual progress indicators
 
-<div align="center">
-
-## 🧠 Overview
-
-**MediCare** is your all-in-one medication management platform—tailored for **Patients** and **Caretakers**. Track, remind, and celebrate medication adherence in real time. Built on a modern, secure, and scalable stack.
-
-</div>
-
----
-
-<div align="center">
-
-## ✨ Features
-
-<table>
-<tr>
-<td valign="top"><b>✅ Core</b></td>
-<td valign="top"><b>🚀 Enhancements</b></td>
-<td valign="top"><b>🔄 Bonus</b></td>
-</tr>
-<tr>
-<td>
-
-- Secure Supabase Auth  
-- Personalized Dashboards  
-- Add/Delete Meds  
-- Mark as Taken  
-- Adherence Tracking  
-- Optimistic UI
-
-</td>
-<td>
-
-- Real-Time Monitoring  
-- Visual Analytics  
-- Easy Role Switch
-
-</td>
-<td>
-
-- Upload Med Proof  
-- Deploy: Vercel/Netlify
-
-</td>
-</tr>
-</table>
-
-</div>
-
----
-
-<div align="center">
+### Caretaker Features
+- Monitor patient medication adherence
+- View comprehensive adherence reports
+- Real-time status updates
+- Alert system for missed medications
+- Historical data analysis
 
 ## 🛠️ Tech Stack
 
-| Frontend      | Backend | State | Forms | Testing    | Date      | Styling      |
-| ------------- | ------- | ----- | ----- | ---------- | --------- | ------------ |
-| React 18, TS  | Supabase| TanStack Query | RHF + Zod | Vitest + TL| date-fns | Tailwind, Radix UI |
+- **Frontend**: React 18, TypeScript, Vite
+- **UI Components**: Radix UI, Tailwind CSS
+- **State Management**: React Query (TanStack Query)
+- **Backend**: Supabase (PostgreSQL, Auth, Real-time)
+- **Form Handling**: React Hook Form with Zod validation
+- **Date Handling**: date-fns
+- **Testing**: Vitest, React Testing Library
+- **Deployment**: Netlify
 
-</div>
+## 📋 Prerequisites
 
----
+- Node.js 18+ 
+- npm or yarn
+- Supabase account
 
-<div align="center">
+## 🚀 Quick Start
 
-## 🚀 Quickstart
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/medicare-app.git
+git clone <repository-url>
 cd medicare-app
 npm install
 ```
 
-</div>
+### 2. Environment Setup
 
----
+Create a `.env` file in the root directory:
 
-<div align="center">
-
-## 🔧 Supabase Database Setup
-
-1. Get your `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` and put them in `.env`.
-2. Set up your schema in the SQL Editor (see below):
-
-</div>
-
-<details>
-  <summary><b>Sample SQL Schema</b></summary>
-
-```sql
--- profiles, medications, medication_logs
--- enable RLS and create policies accordingly
--- trigger: handle_new_user()
-```
-</details>
-
----
-
-<div align="center">
-
-## 📁 Project Structure
-
-</div>
-
-```
-src/
- ├── components/
- │    ├── auth/
- │    ├── dashboard/
- │    ├── medications/
- │    └── ui/
- ├── hooks/
- │    ├── useAuth.ts
- │    └── useMedications.ts
- ├── lib/
- │    ├── supabase.ts
- │    └── utils.ts
- ├── types/
- │    ├── auth.ts
- │    ├── database.ts
- │    └── medication.ts
- └── test/
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
----
+### 3. Database Setup
 
-<div align="center">
+1. Create a new Supabase project
+2. Run the migration file in your Supabase SQL editor:
+   - Copy the contents of `supabase/migrations/001_initial_schema.sql`
+   - Execute in Supabase SQL Editor
+
+### 4. Development
+
+```bash
+npm run dev
+```
+
+The application will be available at `http://localhost:8080`
+
+### 5. Build for Production
+
+```bash
+npm run build
+```
+
+## 🗄️ Database Schema
+
+### Tables
+
+- **profiles**: User profiles with role information
+- **medications**: Medication details (name, dosage, frequency)
+- **medication_logs**: Tracking when medications are taken
+
+### Security
+
+- Row Level Security (RLS) enabled on all tables
+- Users can only access their own data
+- Proper authentication checks on all operations
 
 ## 🧪 Testing
 
 ```bash
-npm test             # Run all tests
-npm run test:watch   # Watch mode
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
 npm run test:coverage
 ```
 
-</div>
+## 📱 Features in Detail
 
----
+### Authentication
+- Secure email/password authentication
+- Form validation with helpful error messages
+- Password visibility toggle
+- Automatic session management
 
-<div align="center">
+### Medication Management
+- Add medications with name, dosage, and frequency
+- Edit existing medications
+- Delete medications with confirmation
+- Input validation and error handling
+
+### Adherence Tracking
+- Mark medications as taken for the current day
+- Visual indicators for completion status
+- Prevent duplicate entries for the same day
+- Optimistic UI updates for better UX
+
+### Dashboard Analytics
+- 30-day adherence percentage
+- Current streak tracking
+- Daily progress indicators
+- Visual progress bars and charts
+
+### Responsive Design
+- Mobile-first approach
+- Adaptive layouts for all screen sizes
+- Touch-friendly interface
+- Optimized for both desktop and mobile
+
+## 🔒 Security Features
+
+- Row Level Security (RLS) on all database tables
+- Input validation and sanitization
+- XSS protection headers
+- Secure authentication flow
+- Environment variable protection
 
 ## 🚀 Deployment
 
-### Vercel
+### Netlify (Recommended)
 
-```bash
-npm install -g vercel
-vercel login
-vercel --prod
-```
-Add your `.env` in Vercel dashboard.
+1. Connect your repository to Netlify
+2. Set build command: `npm run build`
+3. Set publish directory: `dist`
+4. Add environment variables in Netlify dashboard
+5. Deploy
 
-### Netlify
+### Manual Deployment
 
 ```bash
 npm run build
-# Connect repo in Netlify UI
-# Build: npm run build
-# Publish: dist
+# Upload dist/ folder to your hosting provider
 ```
 
-</div>
+## 📊 Performance Optimizations
 
----
-
-<div align="center">
-
-## 🔒 Security First
-
-- Row Level Security (RLS) everywhere 🚦
-- Auth checks for every action 👤
-- Zod-powered input validation 🛡️
-
-</div>
-
----
-
-<div align="center">
-
-## 📈 Performance
-
-- Fast React Query caching ⚡
-- Optimistic UI updates 🤩
-- Lazy loading & efficient renders 🚦
-
-</div>
-
----
-
-<div align="center">
+- React Query for efficient data caching
+- Optimistic updates for better UX
+- Lazy loading and code splitting
+- Efficient re-rendering with proper dependencies
+- Image optimization and compression
 
 ## 🤝 Contributing
 
-1. Fork the repo
-2. Create your feature branch
-3. Commit changes + tests
-4. Open PR—let's collaborate!
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/new-feature`
+3. Commit changes: `git commit -am 'Add new feature'`
+4. Push to branch: `git push origin feature/new-feature`
+5. Submit a Pull Request
 
-</div>
+## 📝 License
 
----
-
-<div align="center">
-
-## 📄 License
-
-MIT License
-
-</div>
-
----
-
-<div align="center">
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 🆘 Support
 
-Raise an issue or contact the dev team.  
-<i>We're here to help!</i>
+For support and questions:
+- Create an issue in the repository
+- Check the documentation
+- Review the troubleshooting guide
 
-</div>
+## 🔄 Version History
+
+- **v1.0.0**: Initial release with core features
+- **v1.1.0**: Added caretaker dashboard and role switching
+- **v1.2.0**: Enhanced UI/UX and mobile responsiveness
+- **v1.3.0**: Performance optimizations and bug fixes
 
 ---
 
-<p align="center">
-  <b>Made with ❤️ by Chirag</b>
-</p>
+Made with ❤️ for better medication management

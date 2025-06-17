@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { supabase, handleSupabaseError } from '@/lib/supabase';
 import { useAuth } from './useAuth';
 import type { 
   Medication, 
@@ -10,7 +10,7 @@ import type {
   MedicationWithLogs,
   AdherenceStats 
 } from '@/types/medication';
-import { format, startOfDay, subDays, isToday } from 'date-fns';
+import { format, startOfDay, subDays, isToday, parseISO } from 'date-fns';
 
 export const useMedications = () => {
   const { user } = useAuth();
@@ -30,43 +30,82 @@ export const useMedications = () => {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(handleSupabaseError(error));
+      }
+      
       return data || [];
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: (failureCount, error) => {
+      // Don't retry on auth errors
+      if (error.message.includes('JWT') || error.message.includes('auth')) {
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 
   const addMedicationMutation = useMutation({
     mutationFn: async (medication: Omit<MedicationInsert, 'user_id'>) => {
       if (!user) throw new Error('User not authenticated');
 
+      // Validate input
+      if (!medication.name?.trim()) {
+        throw new Error('Medication name is required');
+      }
+      if (!medication.dosage?.trim()) {
+        throw new Error('Dosage is required');
+      }
+      if (!medication.frequency) {
+        throw new Error('Frequency is required');
+      }
+
       const { data, error } = await supabase
         .from('medications')
         .insert({
           ...medication,
           user_id: user.id,
+          name: medication.name.trim(),
+          dosage: medication.dosage.trim(),
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(handleSupabaseError(error));
+      }
+      
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['medications', user?.id] });
     },
+    onError: (error) => {
+      console.error('Add medication error:', error);
+    },
   });
 
   const updateMedicationMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: MedicationUpdate }) => {
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('medications')
-        .update(updates)
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', id)
+        .eq('user_id', user.id) // Ensure user owns the medication
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(handleSupabaseError(error));
+      }
+      
       return data;
     },
     onSuccess: () => {
@@ -76,12 +115,17 @@ export const useMedications = () => {
 
   const deleteMedicationMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (!user) throw new Error('User not authenticated');
+
       const { error } = await supabase
         .from('medications')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id); // Ensure user owns the medication
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(handleSupabaseError(error));
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['medications', user?.id] });
@@ -92,16 +136,32 @@ export const useMedications = () => {
     mutationFn: async (log: Omit<MedicationLogInsert, 'user_id'>) => {
       if (!user) throw new Error('User not authenticated');
 
+      // Validate that the medication belongs to the user
+      const { data: medication, error: medError } = await supabase
+        .from('medications')
+        .select('id')
+        .eq('id', log.medication_id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (medError || !medication) {
+        throw new Error('Medication not found or access denied');
+      }
+
       const { data, error } = await supabase
         .from('medication_logs')
         .insert({
           ...log,
           user_id: user.id,
+          taken_at: log.taken_at || new Date().toISOString(),
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(handleSupabaseError(error));
+      }
+      
       return data;
     },
     onSuccess: () => {
@@ -113,11 +173,11 @@ export const useMedications = () => {
       
       const previousMedications = queryClient.getQueryData<MedicationWithLogs[]>(['medications', user?.id]);
       
-      if (previousMedications) {
+      if (previousMedications && user) {
         const optimisticLog: MedicationLog = {
           id: `temp-${Date.now()}`,
           medication_id: newLog.medication_id,
-          user_id: user!.id,
+          user_id: user.id,
           taken_at: newLog.taken_at || new Date().toISOString(),
           notes: newLog.notes || null,
           photo_url: newLog.photo_url || null,
@@ -136,6 +196,7 @@ export const useMedications = () => {
       return { previousMedications };
     },
     onError: (err, newLog, context) => {
+      console.error('Mark medication taken error:', err);
       if (context?.previousMedications) {
         queryClient.setQueryData(['medications', user?.id], context.previousMedications);
       }
@@ -154,6 +215,7 @@ export const useMedications = () => {
     isUpdatingMedication: updateMedicationMutation.isPending,
     isDeletingMedication: deleteMedicationMutation.isPending,
     isMarkingTaken: markMedicationTakenMutation.isPending,
+    refetch: medicationsQuery.refetch,
   };
 };
 
@@ -169,7 +231,6 @@ export const useAdherenceStats = (medications: MedicationWithLogs[]): AdherenceS
     }
 
     const today = startOfDay(new Date());
-    const thirtyDaysAgo = subDays(today, 29);
     
     // Get all days in the last 30 days
     const allDays: Date[] = [];
@@ -181,21 +242,31 @@ export const useAdherenceStats = (medications: MedicationWithLogs[]): AdherenceS
     const takenDays = allDays.filter(day => {
       const dayStr = format(day, 'yyyy-MM-dd');
       return medications.some(med => 
-        med.medication_logs.some(log => 
-          format(new Date(log.taken_at), 'yyyy-MM-dd') === dayStr
-        )
+        med.medication_logs.some(log => {
+          try {
+            const logDate = parseISO(log.taken_at);
+            return format(logDate, 'yyyy-MM-dd') === dayStr;
+          } catch {
+            return false;
+          }
+        })
       );
     }).length;
 
-    // Calculate current streak
+    // Calculate current streak (consecutive days from today backwards)
     let currentStreak = 0;
     for (let i = 0; i < 30; i++) {
       const day = subDays(today, i);
       const dayStr = format(day, 'yyyy-MM-dd');
       const hasTakenMeds = medications.some(med => 
-        med.medication_logs.some(log => 
-          format(new Date(log.taken_at), 'yyyy-MM-dd') === dayStr
-        )
+        med.medication_logs.some(log => {
+          try {
+            const logDate = parseISO(log.taken_at);
+            return format(logDate, 'yyyy-MM-dd') === dayStr;
+          } catch {
+            return false;
+          }
+        })
       );
 
       if (hasTakenMeds) {
@@ -221,9 +292,14 @@ export const useTodaysMedications = () => {
   
   const todaysMeds = medications.map(med => {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const takenToday = med.medication_logs.some(log => 
-      format(new Date(log.taken_at), 'yyyy-MM-dd') === todayStr
-    );
+    const takenToday = med.medication_logs.some(log => {
+      try {
+        const logDate = parseISO(log.taken_at);
+        return format(logDate, 'yyyy-MM-dd') === todayStr;
+      } catch {
+        return false;
+      }
+    });
     
     return {
       ...med,

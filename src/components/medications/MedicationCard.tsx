@@ -2,8 +2,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Clock, Pill, Trash2 } from 'lucide-react';
-import { format, isToday } from 'date-fns';
+import { Check, Clock, Pill, Trash2, AlertCircle } from 'lucide-react';
+import { format, isToday, parseISO } from 'date-fns';
 import { useMedications } from '@/hooks/useMedications';
 import { toast } from '@/components/ui/sonner';
 import type { MedicationWithLogs } from '@/types/medication';
@@ -20,9 +20,14 @@ export const MedicationCard: React.FC<MedicationCardProps> = ({
   const { markMedicationTaken, deleteMedication, isMarkingTaken, isDeletingMedication } = useMedications();
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const takenToday = medication.medication_logs.some(log => 
-    format(new Date(log.taken_at), 'yyyy-MM-dd') === todayStr
-  );
+  const takenToday = medication.medication_logs.some(log => {
+    try {
+      const logDate = parseISO(log.taken_at);
+      return format(logDate, 'yyyy-MM-dd') === todayStr;
+    } catch {
+      return false;
+    }
+  });
 
   const handleMarkTaken = () => {
     if (takenToday) {
@@ -30,18 +35,26 @@ export const MedicationCard: React.FC<MedicationCardProps> = ({
       return;
     }
 
-    markMedicationTaken({
-      medication_id: medication.id,
-      taken_at: new Date().toISOString(),
-    });
-    
-    toast.success('Medication marked as taken!');
+    try {
+      markMedicationTaken({
+        medication_id: medication.id,
+        taken_at: new Date().toISOString(),
+      });
+      
+      toast.success('Medication marked as taken!');
+    } catch (error) {
+      toast.error('Failed to mark medication as taken');
+    }
   };
 
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this medication?')) {
-      deleteMedication(medication.id);
-      toast.success('Medication deleted successfully');
+    if (window.confirm(`Are you sure you want to delete "${medication.name}"? This action cannot be undone.`)) {
+      try {
+        deleteMedication(medication.id);
+        toast.success('Medication deleted successfully');
+      } catch (error) {
+        toast.error('Failed to delete medication');
+      }
     }
   };
 
@@ -57,12 +70,32 @@ export const MedicationCard: React.FC<MedicationCardProps> = ({
     return labels[frequency] || frequency;
   };
 
+  const getLastTakenDate = () => {
+    if (medication.medication_logs.length === 0) return null;
+    
+    try {
+      const sortedLogs = medication.medication_logs
+        .map(log => parseISO(log.taken_at))
+        .sort((a, b) => b.getTime() - a.getTime());
+      
+      return sortedLogs[0];
+    } catch {
+      return null;
+    }
+  };
+
+  const lastTaken = getLastTakenDate();
+
   return (
-    <Card className={`transition-all duration-200 ${takenToday ? 'bg-green-50 border-green-200' : 'hover:shadow-md'}`}>
+    <Card className={`transition-all duration-200 ${
+      takenToday 
+        ? 'bg-green-50 border-green-200 shadow-sm' 
+        : 'hover:shadow-md border-border'
+    }`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
               takenToday ? 'bg-green-500' : 'bg-blue-100'
             }`}>
               {takenToday ? (
@@ -71,13 +104,18 @@ export const MedicationCard: React.FC<MedicationCardProps> = ({
                 <Pill className="w-5 h-5 text-blue-600" />
               )}
             </div>
-            <div>
-              <CardTitle className="text-lg">{medication.name}</CardTitle>
-              <p className="text-sm text-muted-foreground">{medication.dosage}</p>
+            <div className="min-w-0 flex-1">
+              <CardTitle className="text-lg truncate">{medication.name}</CardTitle>
+              <p className="text-sm text-muted-foreground truncate">{medication.dosage}</p>
+              {lastTaken && !takenToday && (
+                <p className="text-xs text-muted-foreground">
+                  Last taken: {format(lastTaken, 'MMM d, yyyy')}
+                </p>
+              )}
             </div>
           </div>
           
-          <Badge variant={takenToday ? "secondary" : "outline"}>
+          <Badge variant={takenToday ? "secondary" : "outline"} className="flex-shrink-0">
             <Clock className="w-3 h-3 mr-1" />
             {getFrequencyLabel(medication.frequency)}
           </Badge>
@@ -92,8 +130,14 @@ export const MedicationCard: React.FC<MedicationCardProps> = ({
               disabled={takenToday || isMarkingTaken}
               className={`flex-1 ${takenToday ? 'bg-green-600 hover:bg-green-700' : ''}`}
               variant={takenToday ? "default" : "outline"}
+              size="sm"
             >
-              {takenToday ? (
+              {isMarkingTaken ? (
+                <>
+                  <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Marking...
+                </>
+              ) : takenToday ? (
                 <>
                   <Check className="w-4 h-4 mr-2" />
                   Taken Today
@@ -110,10 +154,14 @@ export const MedicationCard: React.FC<MedicationCardProps> = ({
               onClick={handleDelete}
               disabled={isDeletingMedication}
               variant="outline"
-              size="icon"
-              className="text-destructive hover:text-destructive"
+              size="sm"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
             >
-              <Trash2 className="w-4 h-4" />
+              {isDeletingMedication ? (
+                <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
             </Button>
           </div>
         )}
@@ -123,6 +171,13 @@ export const MedicationCard: React.FC<MedicationCardProps> = ({
             <Check className="w-3 h-3 mr-1" />
             Completed for today
           </p>
+        )}
+        
+        {!takenToday && lastTaken && (
+          <div className="mt-2 flex items-center text-xs text-orange-600">
+            <AlertCircle className="w-3 h-3 mr-1" />
+            Not taken today
+          </div>
         )}
       </CardContent>
     </Card>

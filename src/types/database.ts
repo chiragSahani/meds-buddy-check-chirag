@@ -21,7 +21,7 @@ export interface Database {
         Insert: {
           id: string
           email: string
-          role: 'patient' | 'caretaker'
+          role?: 'patient' | 'caretaker'
           full_name?: string | null
           created_at?: string
           updated_at?: string
@@ -41,7 +41,7 @@ export interface Database {
           user_id: string
           name: string
           dosage: string
-          frequency: string
+          frequency: 'once_daily' | 'twice_daily' | 'three_times_daily' | 'four_times_daily' | 'as_needed' | 'weekly'
           created_at: string
           updated_at: string
         }
@@ -50,7 +50,7 @@ export interface Database {
           user_id: string
           name: string
           dosage: string
-          frequency: string
+          frequency: 'once_daily' | 'twice_daily' | 'three_times_daily' | 'four_times_daily' | 'as_needed' | 'weekly'
           created_at?: string
           updated_at?: string
         }
@@ -59,7 +59,7 @@ export interface Database {
           user_id?: string
           name?: string
           dosage?: string
-          frequency?: string
+          frequency?: 'once_daily' | 'twice_daily' | 'three_times_daily' | 'four_times_daily' | 'as_needed' | 'weekly'
           created_at?: string
           updated_at?: string
         }
@@ -105,3 +105,6 @@ export interface Database {
     }
   }
 }
+
+export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
+export type Enums<T extends keyof Database['public']['Enums']> = Database['public']['Enums'][T]
